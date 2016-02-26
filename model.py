@@ -54,7 +54,6 @@ class SqueezeNet(chainer.Chain):
         h = F.dropout(h, ratio=0.5, train=train)
 
         h = self.conv10(h)
-
         h = F.average_pooling_2d(h, 13)
 
         return F.reshape(h, (-1, 1000))
