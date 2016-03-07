@@ -9,13 +9,16 @@ class Fire(chainer.Chain):
             conv1=L.Convolution2D(in_size, s1, 1),
             conv2=L.Convolution2D(s1, e1, 1),
             conv3=L.Convolution2D(s1, e3, 3, pad=1),
+            bn4=L.BatchNormalization(e1 + e3)
         )
 
     def __call__(self, x):
         h = F.relu(self.conv1(x))
         h_1 = self.conv2(h)
         h_3 = self.conv3(h)
-        return F.relu(F.concat([h_1, h_3], axis=1))
+        h_out = F.concat([h_1, h_3], axis=1)
+
+        return F.relu(self.bn4(h_out))
 
 
 class SqueezeNet(chainer.Chain):
@@ -30,11 +33,12 @@ class SqueezeNet(chainer.Chain):
             fire7=Fire(384, 48, 192, 192),
             fire8=Fire(384, 64, 256, 256),
             fire9=Fire(512, 64, 256, 256),
-            conv10=L.Convolution2D(512, 1000, 1)
+            conv10=L.Convolution2D(512, 1000, 1,
+                pad=1, initialW=normal(0, 0.01 (1000, 512, 1, 1)))
         )
 
     def __call__(self, x, train=False):
-        h = self.conv1(x)
+        h = F.relu(self.conv1(x))
         h = F.max_pooling_2d(h, 3, stride=2)
 
         h = self.fire2(h)
@@ -53,7 +57,7 @@ class SqueezeNet(chainer.Chain):
         h = self.fire9(h)
         h = F.dropout(h, ratio=0.5, train=train)
 
-        h = self.conv10(h)
+        h = F.relu(self.conv10(h))
         h = F.average_pooling_2d(h, 13)
 
         return F.reshape(h, (-1, 1000))
